@@ -1,0 +1,11 @@
+{
+  "name": "coursesforyou",
+  "private": true,
+  "version": "1.0.0",
+  "description": "CoursesForYou — unified monorepo (Laravel API + React SPA)",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd frontend && npm install && npm run build",
+    "install:frontend": "cd frontend && npm install"
+  }
+}
