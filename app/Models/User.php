@@ -1,15 +1,16 @@
 <?php
-// app/Models/User.php — REPLACE existing
+// app/Models/User.php
+// EMAIL VERIFICATION: MustVerifyEmail removed until mail service is purchased
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+// use Illuminate\Contracts\Auth\MustVerifyEmail; // DISABLED: email verification
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable // removed: implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -23,9 +24,18 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     // ── Role helpers ──────────────────────────────────────────────
-    public function isAdmin(): bool      { return $this->role === 'admin'; }
-    public function isInstructor(): bool { return $this->role === 'instructor'; }
-    public function isStudent(): bool    { return $this->role === 'student'; }
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+    public function isInstructor(): bool
+    {
+        return $this->role === 'instructor';
+    }
+    public function isStudent(): bool
+    {
+        return $this->role === 'student';
+    }
 
     // ── Relationships ─────────────────────────────────────────────
     public function courses()
@@ -41,7 +51,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function enrolledCourses()
     {
         return $this->belongsToMany(Course::class, 'enrollments', 'student_id', 'course_id')
-                    ->withPivot('enrolled_at');
+            ->withPivot('enrolled_at');
     }
 
     public function lessonCompletions()

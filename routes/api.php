@@ -1,5 +1,6 @@
 <?php
-// routes/api.php — REPLACE existing
+// routes/api.php
+// EMAIL VERIFICATION: routes commented out until mail service is purchased
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CourseController;
@@ -14,24 +15,25 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login',    [AuthController::class, 'login']);
 
-// ── Email verification link (arrives from email, no auth token yet) ──
-// Signed URL — Laravel validates the signature automatically
-Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verify'])
-     ->name('verification.verify');
+// DISABLED: email verification route — uncomment when mail service is ready
+// Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verify'])
+//      ->name('verification.verify');
 
 // ── Protected: all authenticated users ───────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
 
     // Auth
-    Route::post('/logout',                             [AuthController::class, 'logout']);
-    Route::get('/me',                                  [AuthController::class, 'me']);
-    Route::post('/email/verification-notification',    [AuthController::class, 'resendVerification']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me',      [AuthController::class, 'me']);
+
+    // DISABLED: resend verification — uncomment when mail service is ready
+    // Route::post('/email/verification-notification', [AuthController::class, 'resendVerification']);
 
     // Upload (Cloudinary)
     Route::middleware('role:admin,instructor')->group(function () {
         Route::post('/uploads/sign',         [UploadController::class, 'sign']);
         Route::delete('/uploads/{publicId}', [UploadController::class, 'destroy'])
-             ->where('publicId', '.*');
+            ->where('publicId', '.*');
     });
 
     // Courses (search + category via ?search=&category=)
@@ -54,22 +56,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/courses/{course}/lessons/{lesson}', [LessonController::class, 'destroy']);
     });
 
-    // ── Progress tracking (students only) ────────────────────────
+    // Progress tracking (students only)
     Route::middleware('role:student')->group(function () {
-        // Student dashboard — enrolled courses + progress stats
-        Route::get('/student/dashboard', [ProgressController::class, 'dashboard']);
-
-        // Per-course progress
+        Route::get('/student/dashboard',                                      [ProgressController::class, 'dashboard']);
         Route::get('/courses/{course}/progress',                              [ProgressController::class, 'courseProgress']);
-
-        // Mark / unmark individual lessons
         Route::post('/courses/{course}/lessons/{lesson}/complete',            [ProgressController::class, 'markComplete']);
         Route::delete('/courses/{course}/lessons/{lesson}/complete',          [ProgressController::class, 'unmarkComplete']);
-
-        // Enrollment
-        Route::get('/my-courses',                 [EnrollmentController::class, 'myCourses']);
-        Route::post('/courses/{course}/enroll',   [EnrollmentController::class, 'enroll']);
-        Route::delete('/courses/{course}/enroll', [EnrollmentController::class, 'unenroll']);
+        Route::get('/my-courses',                                             [EnrollmentController::class, 'myCourses']);
+        Route::post('/courses/{course}/enroll',                               [EnrollmentController::class, 'enroll']);
+        Route::delete('/courses/{course}/enroll',                             [EnrollmentController::class, 'unenroll']);
     });
 
     // Live sessions

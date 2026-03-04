@@ -1,5 +1,6 @@
 <?php
-// app/Http/Controllers/AuthController.php — REPLACE existing
+// app/Http/Controllers/AuthController.php
+// EMAIL VERIFICATION: commented out until mail service is purchased
 
 namespace App\Http\Controllers;
 
@@ -7,7 +8,7 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
+// use Illuminate\Auth\Events\Registered;  // DISABLED: email verification
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +18,6 @@ class AuthController extends Controller
 {
     /**
      * POST /api/register
-     * Creates user, fires Registered event (sends verification email).
      */
     public function register(RegisterRequest $request): JsonResponse
     {
@@ -28,17 +28,19 @@ class AuthController extends Controller
             'role'     => $request->role ?? 'student',
         ]);
 
-        // Fire the Registered event — Laravel automatically sends
-        // the email verification notification if User implements MustVerifyEmail
-        event(new Registered($user));
+        // DISABLED: email verification — uncomment when mail service is ready
+        // event(new Registered($user));
+
+        // Auto-mark email as verified so users can access everything immediately
+        $user->markEmailAsVerified();
 
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
-            'user'              => new UserResource($user),
-            'token'             => $token,
-            'email_verified'    => false,
-            'message'           => 'Account created. Please check your email to verify your address.',
+            'user'           => new UserResource($user),
+            'token'          => $token,
+            'email_verified' => true,
+            'message'        => 'Account created successfully.',
         ], 201);
     }
 
@@ -60,7 +62,7 @@ class AuthController extends Controller
         return response()->json([
             'user'           => new UserResource($user),
             'token'          => $token,
-            'email_verified' => $user->hasVerifiedEmail(),
+            'email_verified' => true, // always true while verification is disabled
         ]);
     }
 
@@ -81,41 +83,30 @@ class AuthController extends Controller
         return response()->json(new UserResource($request->user()));
     }
 
-    /**
-     * POST /api/email/verification-notification
-     * Resend the verification email.
-     */
+    // ── DISABLED: email verification endpoints ─────────────────────
+    // Uncomment these when you purchase a mail service
+
+    /*
     public function resendVerification(Request $request): JsonResponse
     {
         if ($request->user()->hasVerifiedEmail()) {
             return response()->json(['message' => 'Email already verified.'], 400);
         }
-
         $request->user()->sendEmailVerificationNotification();
-
         return response()->json(['message' => 'Verification email sent.']);
     }
 
-    /**
-     * GET /api/email/verify/{id}/{hash}
-     * Handles the verification link that arrives in the email.
-     * Laravel signs this URL — the hash is validated automatically.
-     */
     public function verify(Request $request, int $id, string $hash): JsonResponse
     {
         $user = User::findOrFail($id);
-
-        // Validate the signed URL hash
         if (!hash_equals(sha1($user->getEmailForVerification()), $hash)) {
             return response()->json(['message' => 'Invalid verification link.'], 403);
         }
-
         if ($user->hasVerifiedEmail()) {
             return response()->json(['message' => 'Email already verified.']);
         }
-
         $user->markEmailAsVerified();
-
         return response()->json(['message' => 'Email verified successfully.']);
     }
+    */
 }

@@ -1,4 +1,5 @@
-// src/context/AuthContext.jsx — REPLACE existing
+// src/context/AuthContext.jsx
+// EMAIL VERIFICATION: resendVerification commented out until mail service is purchased
 
 import { createContext, useContext, useState, useCallback } from 'react'
 import api from '../api/axios'
@@ -30,7 +31,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const logout = useCallback(async () => {
-    try { await api.post('/logout') } catch {}
+    try { await api.post('/logout') } catch { }
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     setUser(null)
@@ -42,13 +43,15 @@ export function AuthProvider({ children }) {
     return data
   }, [])
 
-  const resendVerification = useCallback(async () => {
-    await api.post('/email/verification-notification')
-  }, [])
+  // DISABLED: email verification — uncomment when mail service is ready
+  // const resendVerification = useCallback(async () => {
+  //   await api.post('/email/verification-notification')
+  // }, [])
 
   return (
     <AuthContext.Provider value={{
-      user, login, register, logout, refreshUser, resendVerification,
+      user, login, register, logout, refreshUser,
+      // resendVerification,  // DISABLED
     }}>
       {children}
     </AuthContext.Provider>

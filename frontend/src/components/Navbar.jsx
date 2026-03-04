@@ -58,9 +58,9 @@ export default function Navbar() {
                 <p className="text-sm font-medium text-light leading-none">{user.name}</p>
                 <div className="mt-1 flex items-center gap-1.5 justify-end">
                   <RoleBadge role={user.role} />
-                  {!user.email_verified && (
+                  {/* {!user.email_verified && (
                     <span className="badge bg-amber/15 text-amber text-xs">unverified</span>
-                  )}
+                  )} */}
                 </div>
               </div>
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber/30 to-teal/20 border border-line flex items-center justify-center font-display font-semibold text-amber text-sm uppercase">
