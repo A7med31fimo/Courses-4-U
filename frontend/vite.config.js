@@ -23,10 +23,15 @@ export default defineConfig({
   // Production build: output directly into Laravel's public/ folder
   build: {
     outDir: '../public',
-    emptyOutDir: false,  // Keep Laravel's existing public files (index.php, .htaccess, etc.)
+    emptyOutDir: false,
     assetsDir: 'assets',
     rollupOptions: {
       input: resolve(__dirname, 'index.html'),
+      output: {
+        entryFileNames: 'assets/index.js',   // always same name
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name].[ext]',
+      }
     },
   },
 })

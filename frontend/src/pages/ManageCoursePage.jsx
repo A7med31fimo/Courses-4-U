@@ -1,43 +1,26 @@
-// src/pages/ManageCoursePage.jsx — patch: add category field to course form
-// Only the course form section changes — lesson/live session modals are unchanged.
-// Replace just the handleSave payload and the form JSX section below.
-//
-// CHANGE 1: Add category to form state
-//   const [form, setForm] = useState({ title: '', category: '', description: '', is_published: false })
-//
-// CHANGE 2: Add category to handleSave payload
-//   await api.post('/courses', { ...form })   ← already includes category via spread
-//   await api.put(`/courses/${id}`, { ...form })   ← same
-//
-// CHANGE 3: Add category input in the form JSX (add after title field):
+// src/pages/ManageCoursePage.jsx
 
-// ── Category constants (shared with backend) ─────────────────────
 export const COURSE_CATEGORIES = [
-  'Programming',
-  'Design',
-  'Business',
-  'Marketing',
-  'Data Science',
-  'DevOps',
-  'Mobile Development',
-  'Cybersecurity',
-  'AI & Machine Learning',
-  'Other',
+  'Programming', 'Design', 'Business', 'Marketing',
+  'Data Science', 'DevOps', 'Mobile Development',
+  'Cybersecurity', 'AI & Machine Learning', 'Other',
 ]
 
-// ── Paste this field into ManageCoursePage's course <form>, after the title <div>:
-//
-// <div>
-//   <label className="input-label">Category</label>
-//   <select className="input" value={form.category} onChange={set('category')}>
-//     <option value="">— No category —</option>
-//     {COURSE_CATEGORIES.map(c => (
-//       <option key={c} value={c}>{c}</option>
-//     ))}
-//   </select>
-// </div>
-//
-// ── Full updated ManageCoursePage (drop-in replacement) ───────────
+// ── Helper: extract ID from any Google Drive / YouTube URL ───────
+function extractVideoId(source, value) {
+  const val = value.trim()
+  if (source === 'google_drive') {
+    // Matches: /file/d/FILE_ID/ or ?id=FILE_ID
+    const m = val.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || val.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+    return m ? m[1] : val
+  }
+  if (source === 'youtube') {
+    // Matches: ?v=ID, youtu.be/ID, /embed/ID
+    const m = val.match(/(?:v=|youtu\.be\/|\/embed\/)([a-zA-Z0-9_-]{11})/)
+    return m ? m[1] : val
+  }
+  return val
+}
 
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
@@ -56,7 +39,7 @@ function LessonModal({ open, onClose, onSaved, courseId, lesson }) {
     video_file_id: '',
   })
   const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (!open) return
@@ -72,8 +55,10 @@ function LessonModal({ open, onClose, onSaved, courseId, lesson }) {
       })
     } else {
       setTab('upload')
-      setForm({ title: '', description: '', sort_order: 0, video_source: 'cloudinary',
-                video_url: '', cloudinary_public_id: '', thumbnail_url: '', video_file_id: '' })
+      setForm({
+        title: '', description: '', sort_order: 0, video_source: 'cloudinary',
+        video_url: '', cloudinary_public_id: '', thumbnail_url: '', video_file_id: ''
+      })
     }
   }, [lesson, open])
 
@@ -96,7 +81,7 @@ function LessonModal({ open, onClose, onSaved, courseId, lesson }) {
           : { video_file_id: form.video_file_id }),
       }
       if (isEdit) await api.put(`/courses/${courseId}/lessons/${lesson.id}`, payload)
-      else        await api.post(`/courses/${courseId}/lessons`, payload)
+      else await api.post(`/courses/${courseId}/lessons`, payload)
       onSaved(); onClose()
     } catch (err) {
       const msgs = err.response?.data?.errors
@@ -142,8 +127,36 @@ function LessonModal({ open, onClose, onSaved, courseId, lesson }) {
                 <option value="youtube">YouTube</option>
                 <option value="url">Direct URL</option>
               </select>
-              <input className="input font-mono text-sm" value={form.video_file_id} onChange={set('video_file_id')}
-                placeholder={form.video_source === 'youtube' ? 'dQw4w9WgXcQ' : form.video_source === 'google_drive' ? 'Drive File ID…' : 'https://…'} />
+
+              <div>
+                <input
+                  className="input font-mono text-sm"
+                  value={form.video_file_id}
+                  onChange={(e) => {
+                    const extracted = extractVideoId(form.video_source, e.target.value)
+                    setForm(f => ({ ...f, video_file_id: extracted }))
+                  }}
+                  placeholder={
+                    form.video_source === 'google_drive'
+                      ? 'Paste Google Drive share link or File ID'
+                      : form.video_source === 'youtube'
+                        ? 'Paste YouTube URL or video ID'
+                        : 'https://…'
+                  }
+                />
+                {/* Show extracted ID preview for Drive / YouTube */}
+                {form.video_file_id && form.video_source !== 'url' && (
+                  <p className="text-xs text-green mt-1.5 font-mono">
+                    ✓ ID: {form.video_file_id}
+                  </p>
+                )}
+                {/* Drive sharing reminder */}
+                {form.video_source === 'google_drive' && (
+                  <p className="text-xs text-dim mt-1.5">
+                    ⚠️ Make sure the file is set to <strong className="text-soft">"Anyone with the link can view"</strong> in Google Drive
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -247,7 +260,7 @@ export default function ManageCoursePage() {
   const deleteLesson = async (lesson) => {
     if (!confirm(`Delete "${lesson.title}"?`)) return
     await api.delete(`/courses/${id}/lessons/${lesson.id}`)
-    if (lesson.cloudinary_public_id) api.delete(`/uploads/${encodeURIComponent(lesson.cloudinary_public_id)}`).catch(() => {})
+    if (lesson.cloudinary_public_id) api.delete(`/uploads/${encodeURIComponent(lesson.cloudinary_public_id)}`).catch(() => { })
     refreshCourse()
   }
 
@@ -270,8 +283,6 @@ export default function ManageCoursePage() {
           <label className="input-label">Course Title *</label>
           <input className="input" value={form.title} onChange={set('title')} required placeholder="e.g. Introduction to Python" />
         </div>
-
-        {/* ── NEW: Category field ── */}
         <div>
           <label className="input-label">Category</label>
           <select className="input" value={form.category} onChange={set('category')}>
@@ -279,7 +290,6 @@ export default function ManageCoursePage() {
             {COURSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-
         <div>
           <label className="input-label">Description</label>
           <textarea className="input" rows={4} value={form.description} onChange={set('description')} placeholder="What will students learn?" />
@@ -311,14 +321,14 @@ export default function ManageCoursePage() {
                   <div key={lesson.id} className="card p-4 flex items-center gap-4">
                     {lesson.thumbnail_url
                       ? <img src={lesson.thumbnail_url} alt="" className="w-14 h-10 rounded-md object-cover shrink-0 bg-muted" />
-                      : <div className="w-14 h-10 rounded-md bg-muted flex items-center justify-center text-xs font-mono text-dim shrink-0">{i+1 < 10 ? `0${i+1}` : i+1}</div>}
+                      : <div className="w-14 h-10 rounded-md bg-muted flex items-center justify-center text-xs font-mono text-dim shrink-0">{i + 1 < 10 ? `0${i + 1}` : i + 1}</div>}
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-light text-sm truncate">{lesson.title}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         {lesson.video_source === 'cloudinary' && lesson.embed_url ? <span className="badge-amber text-xs">☁️ Cloudinary</span>
                           : lesson.video_source === 'youtube' ? <span className="badge-coral text-xs">▶ YouTube</span>
-                          : lesson.video_source === 'google_drive' && lesson.embed_url ? <span className="badge-teal text-xs">📁 Drive</span>
-                          : <span className="badge-soft text-xs">No video</span>}
+                            : lesson.video_source === 'google_drive' && lesson.embed_url ? <span className="badge-teal text-xs">📁 Drive</span>
+                              : <span className="badge-soft text-xs">No video</span>}
                       </div>
                     </div>
                     <div className="flex gap-1.5 shrink-0">
